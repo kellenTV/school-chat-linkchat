@@ -1,326 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyLink LAN Chat</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chat + Web Embed</title>
 <style>
-html,body,#app{height:100%;margin:0;}
-.iframe-fill{width:100%;height:100%;border:0;}
-.thin-scroll::-webkit-scrollbar{height:8px;width:8px;}
-.thin-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:6px;}
-.drawer{transition: transform 0.3s;}
-.drawer-hidden{transform: translateX(100%);}
-.hidden{display:none;}
-button:disabled{opacity:0.5;cursor:not-allowed;}
-#groupRequests{position:fixed;top:16px;right:16px;z-index:50;width:300px;}
-.requestCard{background:#1e293b;color:#fff;padding:8px;margin-bottom:4px;border-radius:4px;display:flex;justify-content:space-between;align-items:center;}
-#pinnedList{position:fixed;bottom:16px;left:16px;z-index:20;display:flex;flex-direction:column;gap:4px;}
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: white;
+    overflow: hidden;
+  }
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  .header {
+    background: #1e1e1e;
+    padding: 8px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header button {
+    background: #333;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  .chat {
+    width: 35%;
+    background: #181818;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+  }
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+  }
+  .message {
+    background: #282828;
+    margin: 6px 0;
+    padding: 8px;
+    border-radius: 6px;
+    animation: fadeIn 0.2s ease-in;
+  }
+  .input-bar {
+    display: flex;
+    padding: 10px;
+    background: #202020;
+  }
+  .input-bar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 8px;
+    border-radius: 8px;
+    background: #333;
+    color: white;
+  }
+  .input-bar button {
+    margin-left: 8px;
+    background: #555;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+  }
+  iframe {
+    flex: 1;
+    border: none;
+    transition: all 0.3s ease;
+  }
+  .bottom-left {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bottom-left button {
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0; transform: translateY(6px);}
+    to {opacity: 1; transform: translateY(0);}
+  }
 </style>
 </head>
-<body class="bg-slate-900 text-slate-100">
-<div id="app" class="h-full flex flex-col">
-
-<!-- Top Bar -->
-<div class="flex items-center gap-2 p-2 bg-slate-800/60 border-b border-slate-700 flex-wrap">
-  <span class="text-sm text-slate-300">Username</span>
-  <input id="username" class="px-2 py-1 rounded bg-slate-700 text-slate-100 w-32"/>
-  <button id="saveUserBtn" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-sm">Save</button>
-  <button id="toggleContactsBtn" class="px-2 py-1 rounded bg-slate-600 hover:bg-slate-500 text-sm ml-auto">Contacts</button>
-  <button id="toggleNotesBtn" class="px-2 py-1 rounded bg-slate-600 hover:bg-slate-500 text-sm ml-2">Notes</button>
-  <button id="fullscreenBtn" class="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-sm ml-2">Fullscreen</button>
-</div>
-
-<div class="flex flex-1 overflow-hidden">
-  <!-- Notes Pane -->
-  <div id="notesPane" class="w-80 bg-slate-800/50 border-r border-slate-700 p-3 flex flex-col gap-3">
-    <div class="text-lg font-semibold">Notes (Autosaved)</div>
-    <textarea id="notes" class="flex-1 rounded p-2 bg-slate-700 text-slate-100 thin-scroll"></textarea>
-  </div>
-
-  <!-- Center iframe & chat -->
-  <div class="flex-1 flex flex-col relative">
-    <div class="p-2 bg-slate-800/60 border-b border-slate-700 flex items-center gap-2 flex-wrap">
-      <input id="urlInput" class="flex-1 px-2 py-1 rounded bg-slate-700 text-slate-100" placeholder="https://example.com"/>
-      <button id="goBtn" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500">Go</button>
-      <button id="pinBtn" class="px-2 py-1 rounded bg-yellow-600 hover:bg-yellow-500">Pin</button>
-      <button id="openTabBtn" class="px-2 py-1 rounded bg-sky-600 hover:bg-sky-500">Open in New Tab</button>
+<body>
+<div class="chat-container">
+  <div class="header">
+    <h3>Global Chat</h3>
+    <div>
+      <button id="fullscreenBtn">Fullscreen</button>
+      <button id="reloadBtn">Reload</button>
     </div>
-    <div id="iframeWrapper" class="flex-1 bg-slate-900 relative flex flex-col">
-      <iframe id="browserFrame" class="iframe-fill" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-      <div class="flex-1 flex flex-col bg-slate-800/60 border-t border-slate-700 p-2">
-        <div class="flex justify-between items-center mb-2">
-          <div class="flex gap-2 items-center">
-            <button class="chatSelectBtn px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-sm" data-chat="Global">Global</button>
-            <span id="onlineUsers" class="text-sm text-emerald-300"></span>
-          </div>
-          <span id="activeChatName" class="text-sm text-slate-300">Global</span>
-        </div>
-        <div id="chatContainer" class="flex-1 flex flex-col overflow-auto thin-scroll mb-2"></div>
-        <div class="flex items-center gap-2">
-          <input id="messageInput" placeholder="Type message and press Enter" class="flex-1 px-2 py-1 rounded bg-slate-700 text-slate-100"/>
-          <button id="sendBtn" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500">Send</button>
-        </div>
+  </div>
+  <div class="content">
+    <div class="chat">
+      <div class="messages" id="messages"></div>
+      <div class="input-bar">
+        <input id="msgInput" type="text" placeholder="Type message..." />
+        <button id="sendBtn">Send</button>
       </div>
     </div>
-  </div>
-
-  <!-- Contacts Drawer -->
-  <div id="contactsDrawer" class="w-64 bg-slate-800/50 border-l border-slate-700 p-3 flex flex-col gap-3 drawer drawer-hidden">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-lg font-semibold">Contacts</span>
-      <button id="createGroupBtn" class="px-2 py-1 rounded bg-sky-600 hover:bg-sky-500 text-sm">New Group</button>
-    </div>
-    <div class="flex gap-2 mb-2">
-      <input id="addContactInput" placeholder="Add contact" class="flex-1 px-2 py-1 rounded bg-slate-700 text-slate-100 text-sm"/>
-      <button id="addContactBtn" class="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-sm">Add</button>
-    </div>
-    <div id="contactsList" class="flex-1 overflow-auto thin-scroll flex flex-col gap-2"></div>
-    <div class="mt-2">
-      <span class="text-sm text-slate-300">Groups</span>
-      <div id="groupList" class="flex flex-col gap-1 mt-1"></div>
-    </div>
+    <iframe id="webFrame" src="/proxy/https://example.com"></iframe>
   </div>
 </div>
 
-<!-- Pins -->
-<div id="pinnedList"></div>
-
-<!-- Group join requests container -->
-<div id="groupRequests"></div>
+<div class="bottom-left">
+  <button id="pinBtn">📌 Pin</button>
+  <button id="openTabBtn">🔗 Open in New Tab</button>
+</div>
 
 <script>
-(() => {
-const LS_KEYS={username:'studylink_username',contacts:'studylink_contacts',groups:'studylink_groups',notes:'studylink_notes',chats:'studylink_chats'};
-let username=localStorage.getItem(LS_KEYS.username)||'anon';
-let contacts=JSON.parse(localStorage.getItem(LS_KEYS.contacts)||'[]');
-let groups=JSON.parse(localStorage.getItem(LS_KEYS.groups)||'[]');
-let notes=localStorage.getItem(LS_KEYS.notes)||'';
-let chats=JSON.parse(localStorage.getItem(LS_KEYS.chats)||'{}');
-let activeChat='Global';
-let activeGroup=null;
-let peer=null,connections=new Map(),onlinePeers=new Set();
+const messagesDiv = document.getElementById('messages');
+const input = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+const iframe = document.getElementById('webFrame');
+const fullscreenBtn = document.getElementById('fullscreenBtn');
+const reloadBtn = document.getElementById('reloadBtn');
+const pinBtn = document.getElementById('pinBtn');
+const openTabBtn = document.getElementById('openTabBtn');
 
-const usernameInput=document.getElementById('username');
-const saveUserBtn=document.getElementById('saveUserBtn');
-const chatContainer=document.getElementById('chatContainer');
-const messageInput=document.getElementById('messageInput');
-const sendBtn=document.getElementById('sendBtn');
-const onlineUsersEl=document.getElementById('onlineUsers');
-const contactsDrawer=document.getElementById('contactsDrawer');
-const toggleContactsBtn=document.getElementById('toggleContactsBtn');
-const toggleNotesBtn=document.getElementById('toggleNotesBtn');
-const contactsList=document.getElementById('contactsList');
-const createGroupBtn=document.getElementById('createGroupBtn');
-const groupList=document.getElementById('groupList');
-const activeChatName=document.getElementById('activeChatName');
-const fullscreenBtn=document.getElementById('fullscreenBtn');
-const notesPane=document.getElementById('notesPane');
-const notesEl=document.getElementById('notes');
-const iframeWrapper=document.getElementById('iframeWrapper');
-const browserFrame=document.getElementById('browserFrame');
-const groupRequests=document.getElementById('groupRequests');
-const urlInput=document.getElementById('urlInput');
-const goBtn=document.getElementById('goBtn');
-const pinBtn=document.getElementById('pinBtn');
-const openTabBtn=document.getElementById('openTabBtn');
-const pinnedList=document.getElementById('pinnedList');
-const addContactInput=document.getElementById('addContactInput');
-const addContactBtn=document.getElementById('addContactBtn');
+let pinned = false;
+let messages = JSON.parse(localStorage.getItem('messages') || '[]');
 
-// ---------------- Local Storage -----------------
-function saveLocal(){
-  localStorage.setItem(LS_KEYS.username,username);
-  localStorage.setItem(LS_KEYS.contacts,JSON.stringify(contacts));
-  localStorage.setItem(LS_KEYS.groups,JSON.stringify(groups));
-  localStorage.setItem(LS_KEYS.notes,notesEl.value);
-  localStorage.setItem(LS_KEYS.chats,JSON.stringify(chats));
+// Load old messages
+messages.forEach(msg => addMessage(msg));
+
+// --- CHAT FUNCTIONS ---
+function addMessage(text) {
+  const msg = document.createElement('div');
+  msg.className = 'message';
+  msg.textContent = text;
+  messagesDiv.appendChild(msg);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
-// ---------------- Notes -----------------
-notesEl.value=notes;
-notesEl.addEventListener('input',saveLocal);
+sendBtn.onclick = () => {
+  const text = input.value.trim();
+  if (!text) return;
+  addMessage(text);
+  messages.push(text);
+  if (messages.length > 100) messages.shift();
+  localStorage.setItem('messages', JSON.stringify(messages));
+  input.value = '';
+};
 
-// ---------------- Pins -----------------
-let pinnedSites=JSON.parse(localStorage.getItem('pinnedSites')||'[]');
-function renderPins(){
-  pinnedList.innerHTML='';
-  pinnedSites.forEach((p,i)=>{
-    const el=document.createElement('div');
-    el.className='flex items-center gap-1 bg-slate-700/60 p-1 rounded cursor-pointer';
-    el.innerHTML=`<span class="truncate text-slate-100">${p}</span><button class="delBtn px-1 py-0.5 rounded bg-rose-600 text-xs">X</button>`;
-    pinnedList.appendChild(el);
-    el.querySelector('.delBtn').addEventListener('click',()=>{pinnedSites.splice(i,1);localStorage.setItem('pinnedSites',JSON.stringify(pinnedSites));renderPins();});
-    el.addEventListener('click',()=>{browserFrame.src=p;});
-  });
-}
-renderPins();
-goBtn.addEventListener('click',()=>{browserFrame.src=urlInput.value;});
-openTabBtn.addEventListener('click',()=>{window.open(browserFrame.src,'_blank');});
-pinBtn.addEventListener('click',()=>{
-  if(!pinnedSites.includes(browserFrame.src)){pinnedSites.push(browserFrame.src);localStorage.setItem('pinnedSites',JSON.stringify(pinnedSites));renderPins();}
+// --- IFRAME CONTROLS ---
+fullscreenBtn.onclick = () => {
+  if (!document.fullscreenElement) {
+    iframe.requestFullscreen().catch(err => alert(err));
+  } else {
+    document.exitFullscreen();
+  }
+};
+
+reloadBtn.onclick = () => iframe.contentWindow.location.reload();
+
+pinBtn.onclick = () => {
+  pinned = !pinned;
+  pinBtn.textContent = pinned ? "📍 Unpin" : "📌 Pin";
+};
+
+openTabBtn.onclick = () => {
+  window.open(iframe.src, '_blank');
+};
+
+// --- AUTO-CONNECT / RESTORE ---
+window.addEventListener('load', () => {
+  const savedURL = localStorage.getItem('iframeURL');
+  if (savedURL) iframe.src = savedURL;
 });
 
-// ---------------- Chat -----------------
-const unreadCounts={};
-function appendChat(user,msg,chatName=activeChat){
-  if(!chats[chatName]) chats[chatName]=[];
-  chats[chatName].push({user,msg});
-  if(chats[chatName].length>100) chats[chatName].shift();
-  if(chatName===activeChat) renderChat();
-  else addUnread(chatName);
-  saveLocal();
-}
-function renderChat(){
-  chatContainer.innerHTML='';
-  activeChatName.textContent=activeChat;
-  const msgs=chats[activeChat]||[];
-  msgs.forEach(m=>{
-    const d=document.createElement('div');
-    const ts=new Date().toLocaleTimeString();
-    d.className='mb-1';
-    d.innerHTML=`<div class="text-xs text-slate-400">${ts} — <span class="text-emerald-300">${m.user}</span></div><div class="text-slate-100">${m.msg}</div>`;
-    chatContainer.appendChild(d);
-  });
-  chatContainer.scrollTop=chatContainer.scrollHeight;
-  clearUnread(activeChat);
-}
-function addUnread(chatName){unreadCounts[chatName]=(unreadCounts[chatName]||0)+1;renderUnread();}
-function clearUnread(chatName){unreadCounts[chatName]=0;renderUnread();}
-function renderUnread(){
-  document.querySelectorAll('#groupList .openBtn').forEach(btn=>{
-    const groupName=btn.parentElement.parentElement.querySelector('span').textContent;
-    const count=unreadCounts[groupName]||0;
-    btn.textContent='Open'+(count>0?` (${count})`:'');
-  });
-}
-
-// ---------------- Online -----------------
-function updateOnlineUsers(){onlineUsersEl.textContent='Online: '+[...onlinePeers].join(', ');}
-
-// ---------------- PeerJS -----------------
-function initPeer(){
-  peer=new Peer(username,{debug:1});
-  peer.on('open',()=>console.log('Peer ready:',username));
-  peer.on('connection',conn=>setupConn(conn));
-  setInterval(()=>{connections.forEach((conn,id)=>{if(!conn.open){connections.delete(id); onlinePeers.delete(id); updateOnlineUsers();}});},2000);
-}
-function setupConn(conn){
-  const pid=conn.peer;
-  connections.set(pid,conn);
-  conn.on('open',()=>{
-    conn.send({type:'announce',username});
-    onlinePeers.add(pid);
-    updateOnlineUsers();
-  });
-  conn.on('data',data=>{
-    if(!data||!data.type) return;
-    if(data.type==='announce'){onlinePeers.add(data.username); updateOnlineUsers();}
-    if(data.type==='chat'){appendChat(data.username,data.message,data.group);}
-    if(data.type==='groupRequest'){
-      const card=document.createElement('div'); card.className='requestCard';
-      card.innerHTML=`<span>${data.from} invites you to join "${data.group}"</span>`;
-      const acceptBtn=document.createElement('button'); acceptBtn.textContent='Accept'; acceptBtn.className='px-1 py-0.5 rounded bg-green-600 text-sm';
-      const rejectBtn=document.createElement('button'); rejectBtn.textContent='Reject'; rejectBtn.className='px-1 py-0.5 rounded bg-rose-600 text-sm';
-      acceptBtn.addEventListener('click',()=>{
-        let g=groups.find(gr=>gr.name===data.group);
-        if(!g){g={name:data.group,members:[data.from]}; groups.push(g);} 
-        if(!g.members.includes(username)) g.members.push(username);
-        saveLocal(); renderGroups(); groupRequests.removeChild(card);
-      });
-      rejectBtn.addEventListener('click',()=>groupRequests.removeChild(card));
-      card.append(acceptBtn,rejectBtn); groupRequests.appendChild(card);
-    }
-  });
-  conn.on('close',()=>{connections.delete(pid); onlinePeers.delete(pid); updateOnlineUsers();});
-}
-function connectToPeer(pid){if(connections.has(pid)) return; const conn=peer.connect(pid); conn.on('open',()=>setupConn(conn));}
-
-// ---------------- UI Events -----------------
-usernameInput.value=username;
-saveUserBtn.addEventListener('click',()=>{username=usernameInput.value.trim()||'anon'; saveLocal(); if(peer&&!peer.destroyed) peer.destroy(); initPeer(); renderContacts(); renderGroups(); setupChatSwitch();});
-
-sendBtn.addEventListener('click',()=>{
-  const msg=messageInput.value.trim(); if(!msg) return; messageInput.value='';
-  appendChat(username,msg);
-  if(activeChat==='Global'){connections.forEach(c=>{try{c.send({type:'chat',username,message:msg,group:'Global'});}catch{}});}
-  else{activeGroup.members.forEach(m=>{if(connections.has(m)) try{connections.get(m).send({type:'chat',username,message:msg,group:activeChat});}catch{}});}
-});
-messageInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendBtn.click();}});
-
-toggleContactsBtn.addEventListener('click',()=>contactsDrawer.classList.toggle('drawer-hidden'));
-toggleNotesBtn.addEventListener('click',()=>notesPane.classList.toggle('hidden'));
-fullscreenBtn.addEventListener('click',()=>{if(document.fullscreenElement) document.exitFullscreen(); else iframeWrapper.requestFullscreen();});
-
-// ---------------- Contacts -----------------
-function renderContacts(){
-  contactsList.innerHTML='';
-  contacts.forEach(c=>{
-    const el=document.createElement('div'); el.className='flex items-center justify-between bg-slate-700/50 p-2 rounded';
-    el.innerHTML=`<span>${c}</span><div><button class="connectBtn px-2 py-1 rounded bg-emerald-600 text-sm">Connect</button> <button class="delBtn px-2 py-1 rounded bg-rose-600 text-sm">X</button></div>`;
-    contactsList.appendChild(el);
-    el.querySelector('.connectBtn').addEventListener('click',()=>connectToPeer(c));
-    el.querySelector('.delBtn').addEventListener('click',()=>{contacts.splice(contacts.indexOf(c),1); saveLocal(); renderContacts();});
-  });
-}
-addContactBtn.addEventListener('click',()=>{
-  const val=addContactInput.value.trim();
-  if(val&&!contacts.includes(val)){contacts.push(val); addContactInput.value=''; saveLocal(); renderContacts();}
+iframe.addEventListener('load', () => {
+  localStorage.setItem('iframeURL', iframe.src);
 });
 
-// ---------------- Groups -----------------
-function renderGroups(){
-  groupList.innerHTML='';
-  groups.forEach(g=>{
-    const el=document.createElement('div'); el.className='flex items-center justify-between bg-slate-700/50 p-2 rounded';
-    el.innerHTML=`<span>${g.name}</span><div><button class="openBtn px-2 py-1 rounded bg-sky-600 text-sm">Open</button> <button class="delBtn px-2 py-1 rounded bg-rose-600 text-sm">X</button></div>`;
-    groupList.appendChild(el);
-    el.querySelector('.openBtn').addEventListener('click',()=>{activeChat=g.name; activeGroup=g; renderChat(); clearUnread(g.name);});
-    el.querySelector('.delBtn').addEventListener('click',()=>{groups.splice(groups.indexOf(g),1); saveLocal(); renderGroups(); setupChatSwitch(); if(activeChat===g.name){activeChat='Global'; activeGroup=null; renderChat();}});
-  });
-  setupChatSwitch();
+// Optional: example function to set new iframe URL
+function setIframeURL(url) {
+  iframe.src = '/proxy/' + url.replace(/^https?:\/\//, '');
 }
-
-// ---------------- Chat Switch -----------------
-function setupChatSwitch(){
-  document.querySelector('.chatSelectBtn[data-chat="Global"]').addEventListener('click',()=>{
-    activeChat='Global'; activeGroup=null; renderChat();
-  });
-}
-
-// ---------------- New Group -----------------
-createGroupBtn.addEventListener('click',()=>{
-  const container=document.createElement('div'); container.className='fixed inset-0 bg-black/70 flex justify-center items-center z-50';
-  const box=document.createElement('div'); box.className='bg-slate-800 p-4 rounded w-64 flex flex-col gap-2';
-  const title=document.createElement('div'); title.className='text-lg text-slate-100'; title.textContent='Select Contacts';
-  const list=document.createElement('div'); list.className='flex flex-col gap-1 overflow-auto max-h-48';
-  const selected=new Set();
-  contacts.forEach(c=>{
-    const row=document.createElement('div'); row.className='flex items-center justify-between';
-    const lbl=document.createElement('span'); lbl.textContent=c;
-    const btn=document.createElement('button'); btn.textContent='Add'; btn.className='px-1 py-0.5 rounded bg-indigo-600 text-sm'; 
-    btn.addEventListener('click',()=>{selected.has(c)?selected.delete(c):selected.add(c); btn.classList.toggle('bg-green-600');});
-    row.append(lbl,btn); list.appendChild(row);
-  });
-  const groupName=document.createElement('input'); groupName.placeholder='Group Name'; groupName.className='px-2 py-1 rounded bg-slate-700 text-slate-100';
-  const createBtn=document.createElement('button'); createBtn.textContent='Create'; createBtn.className='px-2 py-1 rounded bg-emerald-600 text-sm';
-  createBtn.addEventListener('click',()=>{
-    if(!groupName.value||selected.size===0){alert('Select contacts and name'); return;}
-    const g={name:groupName.value,members:[...selected]};
-    groups.push(g); saveLocal(); renderGroups();
-    g.members.forEach(m=>{if(connections.has(m)) try{connections.get(m).send({type:'groupRequest',group:g.name,from:username});}catch{}});
-    document.body.removeChild(container);
-  });
-  const cancelBtn=document.createElement('button'); cancelBtn.textContent='Cancel'; cancelBtn.className='px-2 py-1 rounded bg-rose-600 text-sm'; cancelBtn.addEventListener('click',()=>document.body.removeChild(container));
-  const btns=document.createElement('div'); btns.className='flex gap-2 mt-2'; btns.append(createBtn,cancelBtn);
-  box.append(title,list,groupName,btns); container.appendChild(box); document.body.appendChild(container);
-});
-
-// ---------------- Initialize -----------------
-renderContacts(); renderGroups(); initPeer(); renderChat();
-})();
 </script>
 </body>
 </html>
